@@ -52,13 +52,12 @@ class _OcrPageState extends State<OcrPage> {
           _selectedImage = File(image.path);
         });
 
-        // Check if the image file exists
         if (_selectedImage!.existsSync()) {
-          print('Image path: ${image.path}'); // Debug: Check image path
+          print('Image path: ${image.path}'); 
 
           try {
             await Future.delayed(
-                const Duration(seconds: 0)); // Adding delay for camera images
+                const Duration(seconds: 0));
             String text = await performOCR(image.path);
             setState(() {
               ocrText = text;
@@ -107,7 +106,7 @@ class _OcrPageState extends State<OcrPage> {
                   : const Text('No image selected.'),
               const SizedBox(height: 20),
               ocrText.isNotEmpty
-                  ? Container(
+                  ? SizedBox(
                       width: double.infinity,
                       child: Card(
                         shadowColor: Colors.black,
@@ -150,14 +149,13 @@ Future<String> performOCR(String imagePath) async {
       'https://fariz-ocr.cognitiveservices.azure.com/vision/v3.0/ocr';
   String subscriptionKey = '9fb49c40a3e54f0ebb452deda59767e2';
 
-  // Read the image file as bytes
   var imageBytes = await http.MultipartFile.fromPath('image', imagePath);
 
-  // Convert the file to byte data
+  // convert the file to byte data
   final byteData = imageBytes.finalize();
   final bytes = await byteData.toBytes();
 
-  // Prepare headers
+  // p repare headers
   var headers = {
     'Ocp-Apim-Subscription-Key': subscriptionKey,
     'Content-Type': 'application/octet-stream',
