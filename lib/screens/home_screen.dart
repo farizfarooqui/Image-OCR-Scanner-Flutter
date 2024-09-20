@@ -19,20 +19,56 @@ class _OcrPageState extends State<OcrPage> {
   final ImagePicker _picker = ImagePicker();
 
   Future<void> pickImageAndPerformOCR() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    // Show dialog to choose between camera or gallery
+    final ImageSource? source = await showDialog<ImageSource>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Choose Image Source'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Camera'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_album),
+                title: const Text('Gallery'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+            ],
+          ),
+        );
+      },
+    );
 
-    if (image != null) {
-      setState(() {
-        _selectedImage = File(image.path);
-      });
+    if (source != null) {
+      final XFile? image = await _picker.pickImage(source: source);
 
-      try {
-        String text = await performOCR(image.path);
+      if (image != null) {
         setState(() {
-          ocrText = text;
+          _selectedImage = File(image.path);
         });
-      } catch (e) {
-        print('Error during OCR: $e');
+
+        // Check if the image file exists
+        if (_selectedImage!.existsSync()) {
+          print('Image path: ${image.path}'); // Debug: Check image path
+
+          try {
+            await Future.delayed(
+                const Duration(seconds: 0)); // Adding delay for camera images
+            String text = await performOCR(image.path);
+            setState(() {
+              ocrText = text;
+            });
+          } catch (e) {
+            print('Error during OCR: $e');
+          }
+        } else {
+          print('Image file not found!');
+        }
       }
     }
   }
@@ -71,31 +107,34 @@ class _OcrPageState extends State<OcrPage> {
                   : const Text('No image selected.'),
               const SizedBox(height: 20),
               ocrText.isNotEmpty
-                  ? Stack(
-                      children: [
-                        Card(
-                          elevation: 5,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Text(
-                              ocrText,
-                              style: const TextStyle(fontSize: 16),
+                  ? Container(
+                      width: double.infinity,
+                      child: Card(
+                        shadowColor: Colors.black,
+                        borderOnForeground: true,
+                        color: Colors.yellow[200],
+                        elevation: 8,
+                        child: Stack(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Text(
+                                ocrText,
+                                style: const TextStyle(fontSize: 16),
+                              ),
                             ),
-                          ),
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: IconButton(
+                                icon: const Icon(Icons.copy, size: 20),
+                                onPressed: copyToClipboard,
+                                tooltip: 'Copy Text',
+                              ),
+                            ),
+                          ],
                         ),
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: IconButton(
-                            icon: const Icon(Icons.copy, size: 20),
-                            onPressed: copyToClipboard,
-                            tooltip: 'Copy Text',
-                          ),
-                        ),
-                      ],
+                      ),
                     )
                   : const Text('No text extracted yet.'),
             ],
